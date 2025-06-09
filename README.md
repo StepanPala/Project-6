@@ -26,7 +26,9 @@ Knihovny lze nainstalovat pomocí:
 Testy se spouští pomocí Pytestu z kořenového adresáře projektu. Před spuštěním se ujistěte, že máte nainstalované všechny potřebné knihovny ze souboru `requirements.txt`.
 Testy se parametrizují pro spuštění v prohlížečích Chromium, Firefox a WebKit.
 Ve výchozím nastavení (viz `test_alza.py`) se testy spouštějí v "headed" režimu (s viditelným oknem prohlížeče) a malým zpomalením (`slow_mo=500`) pro lepší sledovatelnost. Tyto parametry lze upravit v kódu fixture `browser`.
+
 **Poznámka k "headless" režimu:**
+
 Na testy v "headless" režimu (nastavení `headless=True` ve fixture `browser`) web Alza.cz v některých prohlížečích (zejména Chromiu) reaguje detekcí robotů a testy tak nemusí projít. V "headed" režimu by testy měly projít vždy.
 
 
@@ -79,7 +81,9 @@ The dependencies can be installed as follows:
 Tests are run using Pytest from the project's root directory. Before running, ensure you have installed all necessary libraries from `requirements.txt`.
 Tests are parameterized to run in Chromium, Firefox, and WebKit browsers.
 By default (see `test_alza.py`), tests run in "headed" mode (with a visible browser window) and a slight slowdown (`slow_mo=500`) for better traceability. These parameters can be adjusted in the `browser` fixture code.
+
 **Note on "headless" mode:**
+
 When running tests in "headless" mode (by setting `headless=True` in the `browser` fixture), the Alza.cz website may respond with bot detection in some browsers (especially Chromium), meaning some tests may not pass. In "headed" mode, tests should generally pass.
 
 **Running tests:**
