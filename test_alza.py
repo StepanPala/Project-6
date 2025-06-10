@@ -86,7 +86,23 @@ def refuse_cookies(page: Page):
         )
 
 
-def test_search(page: Page):
+def navigate_and_refuse_cookies(page: Page, url: str):
+    """
+    Navigates the page to a given URL and attempts to refuse cookies.
+    """
+    print(f"Navigating to {url}...")
+    try:
+        page.goto(url, timeout=20000)
+        print(f"Navigation to {url} successful.")
+        print(f"Current URL after navigation: {page.url}")
+    except PlaywrightTimeoutError:
+        print(f"Navigation to {url} timed out.")
+        raise # Re-raise the exception after printing
+    refuse_cookies(page)
+
+
+@pytest.mark.search
+def test_search_and_verify_product_by_name(page: Page):
     """
     Test for searching a product on Alza.cz.
     This test navigates to the homepage, performs a search for
@@ -94,10 +110,7 @@ def test_search(page: Page):
     correctly. It checks the product URL and name.
     """
     print("\nStarting test_search...")
-    print(f"Navigating to Alza homepage: {ALZA_HOMEPAGE}")
-    page.goto(ALZA_HOMEPAGE)
-    print(f"Current URL after navigation: {page.url}")
-    refuse_cookies(page)
+    navigate_and_refuse_cookies(page, ALZA_HOMEPAGE)
 
     search_input_selector = ".header-alz-12 input"
     search_product = "nabíječka"
@@ -170,7 +183,8 @@ def test_search(page: Page):
     print("test_search completed successfully.")
 
 
-def test_product_alt_text(page: Page):
+@pytest.mark.alt_text
+def test_product_image_alt_text(page: Page):
     """
     Test for verifying the alt text of the product image on Alza.cz.
     This test navigates to the product page, checks the visibility
@@ -178,10 +192,7 @@ def test_product_alt_text(page: Page):
     the expected value.
     """
     print("\nStarting test_product_alt_text...")
-    print(f"Navigating to product page: {TEST_PRODUCT_URL}")
-    page.goto(TEST_PRODUCT_URL)
-    print(f"Current URL after navigation: {page.url}")
-    refuse_cookies(page)
+    navigate_and_refuse_cookies(page, TEST_PRODUCT_URL)
     product_image_selector = (
         "#detailPicture swiper-slide.swiper-slide-active img"
     )
@@ -230,7 +241,8 @@ def test_product_alt_text(page: Page):
     print("test_product_alt_text completed successfully.")
 
 
-def test_download_instructions(page: Page):
+@pytest.mark.download
+def test_download_instructions_and_verify_saved_file(page: Page):
     """
     Test for downloading product instructions from Alza.cz.
     This test navigates to the product page, clicks on the
@@ -239,10 +251,7 @@ def test_download_instructions(page: Page):
     downloaded file exists in the expected location.
     """
     print("\nStarting test_download_instructions...")
-    print(f"Navigating to product page: {TEST_PRODUCT_URL}")
-    page.goto(TEST_PRODUCT_URL)
-    print(f"Current URL after navigation: {page.url}")
-    refuse_cookies(page)
+    navigate_and_refuse_cookies(page, TEST_PRODUCT_URL)
 
     discussion_tab_selector = "#hlTabDiscussionPosts"
     find_details = page.locator(discussion_tab_selector)
@@ -294,22 +303,56 @@ def test_download_instructions(page: Page):
         print("Download link clicked, waiting for download to start...")
     download = download_info.value
 
-    print(f"Download started. File name: {download.suggested_filename}")
     download_path = download.suggested_filename
-    print(f"Saving downloaded file as: {download_path}")
-    download.save_as(download_path)
-    print(f"File saved: {download_path}")
+    print(f"Download started. Suggested file name: {download_path}")
 
-    # Checks if the file exists
-    abs_path = os.path.abspath(download_path)
-    print(f"Checking if downloaded file exists at: {abs_path}")
-    assert os.path.isfile(abs_path), (
-        f"Downloaded file does not exist at: {abs_path}"
-    )
-    print(f"Downloaded file exists at: {abs_path}")
+    abs_path = os.path.abspath(download_path) if download_path else None
 
-    # Clean-up
-    print(f"Cleaning up downloaded file: {abs_path}")
-    os.remove(abs_path)
-    print("Downloaded file removed successfully.")
-    print("test_download_instructions completed successfully.")
+    try:
+        if not abs_path:
+            # This case means download.suggested_filename was empty or None.
+            print(
+                "Download did not provide a valid suggested filename. "
+                "Cannot save or clean up."
+            )
+            raise AssertionError(
+                "Download failed: No suggested filename provided."
+            )
+
+        print(f"Attempting to save downloaded file as: {download_path}")
+        download.save_as(download_path) # File is created here
+        print(f"File saved successfully to: {abs_path}")
+
+        # Checks if the file exists
+        print(f"Verifying if downloaded file exists at: {abs_path}")
+        assert os.path.isfile(abs_path), (
+            f"Downloaded file does not exist at the expected location: "
+            f"{abs_path}"
+        )
+        print(f"Verified: Downloaded file exists at: {abs_path}")
+        print("File download, save, and existence verification successful.")
+
+    finally:
+        # Clean-up: Attempt to remove the file if abs_path is valid
+        # and the file exists. This ensures cleanup is attempted
+        # even if assertions in the try block fail after file creation.
+        if abs_path and os.path.isfile(abs_path):
+            print(
+                f"Initiating cleanup: Attempting to remove downloaded file: "
+                f"{abs_path}"
+            )
+            try:
+                os.remove(abs_path)
+                print(
+                    f"Cleanup successful: Downloaded file {abs_path} removed."
+                )
+            except OSError as e:
+                print(
+                    f"Cleanup error: Failed to remove file {abs_path}. "
+                    f"Error: {e}"
+                )
+        elif abs_path: # abs_path defined, but file not found at cleanup
+            print(
+                f"Cleanup: File {abs_path} not found (was it saved correctly, "
+                f"or already removed?)."
+            )
